@@ -78,3 +78,51 @@ func (a TwitterApi) IndicateTyping(id int64) (err error) {
 	a.queryQueue <- query{a.baseUrl + "/direct_messages/indicate_typing.json", v, nil, _POST, response_ch}
 	return (<-response_ch).err
 }
+
+//NewDirectMessage Publishes a new message_create event resulting in a Direct Message sent to a specified user from the authenticating user.
+//Returns an event if successful. Supports publishing Direct Messages with optional Quick Reply and media attachment.
+//Replaces behavior currently provided by POST direct_messages/new.
+//https://developer.twitter.com/en/docs/direct-messages/sending-and-receiving/api-reference/new-event
+func (a TwitterApi) NewDirectMessage(jd []byte) (rsBody []byte, err error) {
+	result := make(map[string]interface{})
+	res, err := a.Do(a.HttpClient, a.baseUrl+"/direct_messages/events/new.json", jd)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	result = decodeRespBody(res.Body)
+	rsBody, err = json.Marshal(result)
+	if err != nil {
+		return nil, err
+	}
+	return rsBody, nil
+}
+
+//Do execute the send query by http client
+// It will return the result as *http.Response
+func (a TwitterApi) Do(client *http.Client, urlStr string, jd []byte) (*http.Response, error) {
+	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(jd))
+	if err != nil {
+		return nil, err
+	}
+	if req.URL.RawQuery != "" {
+		return nil, errors.New("oauth: url must not contain a query string")
+	}
+	c := a.oauthClient
+	for k, v := range c.Header {
+		req.Header[k] = v
+	}
+	auth := c.AuthorizationHeader(a.Credentials, "POST", req.URL, nil)
+	req.Header.Set("Authorization", auth)
+	req.Header.Set("Content-Type", "application/json")
+	if client == nil {
+		client = http.DefaultClient
+	}
+	return client.Do(req)
+}
+
+func decodeRespBody(wr io.Reader) (body map[string]interface{}) {
+	body = make(map[string]interface{})
+	json.NewDecoder(wr).Decode(&body)
+	return body
+}
