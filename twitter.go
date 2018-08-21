@@ -220,7 +220,9 @@ func cleanValues(v url.Values) url.Values {
 
 // apiGet issues a GET request to the Twitter API and decodes the response JSON to data.
 func (c TwitterApi) apiGet(urlStr string, form url.Values, data interface{}) error {
-	form = defaultValues(form)
+	//form = defaultValues(form)
+	//TODO(Mujibur): defaultValues(form) need to rethink, it fails for webhook
+	//its better to use from necessary caller place with adding url.Values{}
 	resp, err := c.oauthClient.Get(c.HttpClient, c.Credentials, urlStr, form)
 	if err != nil {
 		return err
@@ -279,7 +281,8 @@ func decodeResponse(resp *http.Response, data interface{}) error {
 	// according to dev.twitter.com, chunked upload append returns HTTP 2XX
 	// so we need a special case when decoding the response
 	if strings.HasSuffix(resp.Request.URL.String(), "upload.json") ||
-		strings.Contains(resp.Request.URL.String(), "webhooks") {
+		strings.Contains(resp.Request.URL.String(), "webhooks") ||
+		strings.Contains(resp.Request.URL.String(), "subscriptions") {
 		if resp.StatusCode == 204 {
 			// empty response, don't decode
 			return nil
