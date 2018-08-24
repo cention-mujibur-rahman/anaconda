@@ -59,10 +59,10 @@ type WebHookResp struct {
 //a comprehensive error is returned. message to the requester.
 //Only one webhook URL can be registered to an application.
 //https://api.twitter.com/1.1/account_activity/webhooks.json
-func (a TwitterApi) SetAppActivityWebhooks(v url.Values) (u interface{}, err error) {
+func (a TwitterApi) SetAppActivityWebhooks(v url.Values, envName, apiTier string) (u interface{}, err error) {
 	v = cleanValues(v)
 	responseCh := make(chan response)
-	a.queryQueue <- query{a.baseUrl + "/account_activity/webhooks.json", v, &u, _POST, responseCh}
+	a.queryQueue <- query{a.baseUrl + "/account_activity/all/" + envName + "/webhooks.json", v, &u, _POST, responseCh}
 	return u, (<-responseCh).err
 }
 
