@@ -32,6 +32,15 @@ type DMEvent struct {
 type MessageData struct {
 	Text     string `json:"text"`
 	Entities Entities
+	Attachment Attachment
+}
+
+//Attachment included with the message data
+type Attachment struct {
+	Media struct {
+		MediaURL      string `json:"media_url"`
+		MediaUrlHttps string `json:"media_url_https"`
+	}
 }
 
 //DMEventList ...

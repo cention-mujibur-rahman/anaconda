@@ -101,7 +101,22 @@ func (a TwitterApi) NewDirectMessage(jd []byte) (rsBody []byte, err error) {
 //Do execute the send query by http client
 // It will return the result as *http.Response
 func (a TwitterApi) Do(client *http.Client, urlStr string, jd []byte) (*http.Response, error) {
-	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(jd))
+	req, err := a.doHttpReq(client, urlStr, "POST", jd)
+	if err != nil{
+		return nil, err
+	}
+	return client.Do(req)
+}
+
+func decodeRespBody(wr io.Reader) (body map[string]interface{}) {
+	body = make(map[string]interface{})
+	json.NewDecoder(wr).Decode(&body)
+	return body
+}
+
+func (a TwitterApi) doHttpReq(client *http.Client, URL, method string, reader []byte)(*http.Request, error){
+	rb :=  bytes.NewReader(reader)
+	req, err := http.NewRequest(method, URL, rb)
 	if err != nil {
 		return nil, err
 	}
@@ -112,17 +127,21 @@ func (a TwitterApi) Do(client *http.Client, urlStr string, jd []byte) (*http.Res
 	for k, v := range c.Header {
 		req.Header[k] = v
 	}
-	auth := c.AuthorizationHeader(a.Credentials, "POST", req.URL, nil)
+	auth := c.AuthorizationHeader(a.Credentials, method, req.URL, nil)
 	req.Header.Set("Authorization", auth)
 	req.Header.Set("Content-Type", "application/json")
 	if client == nil {
 		client = http.DefaultClient
 	}
-	return client.Do(req)
+	return req, nil
 }
 
-func decodeRespBody(wr io.Reader) (body map[string]interface{}) {
-	body = make(map[string]interface{})
-	json.NewDecoder(wr).Decode(&body)
-	return body
+//GetDirectMessagesMedia fetch direct messages media
+func (a TwitterApi) GetDirectMessagesMedia(mediaURL string, v url.Values) (*http.Response, error) {
+	client := a.HttpClient
+	req, err := a.doHttpReq(client, mediaURL, "GET", nil)
+	if err != nil{
+		return nil, err
+	}
+	return client.Do(req)
 }
