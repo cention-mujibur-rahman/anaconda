@@ -66,6 +66,7 @@ const (
 
 var (
 	oauthCredentials oauth.Credentials
+	defaultClient    = &http.Client{}
 )
 
 type TwitterApi struct {
@@ -102,6 +103,12 @@ type response struct {
 const DEFAULT_DELAY = 0 * time.Second
 const DEFAULT_CAPACITY = 5
 
+func init() {
+	// Configure a timeout to HTTP client (DefaultClient has no default timeout,
+	// which may deadlock Mutex-wrapped uses of the lib.)
+	defaultClient.Timeout = time.Duration(ClientTimeout * time.Second)
+}
+
 //NewTwitterApi takes an user-specific access token and secret and returns a TwitterApi struct for that user.
 //The TwitterApi struct can be used for accessing any of the endpoints available.
 func NewTwitterApi(access_token string, access_token_secret string) *TwitterApi {
@@ -122,12 +129,10 @@ func NewTwitterApi(access_token string, access_token_secret string) *TwitterApi 
 		queryQueue:           queue,
 		bucket:               nil,
 		returnRateLimitError: false,
-		HttpClient:           http.DefaultClient,
+		HttpClient:           defaultClient,
 		Log:                  silentLogger{},
 		baseUrl:              BaseUrl,
 	}
-	//Configure a timeout to HTTP client (DefaultClient has no default timeout, which may deadlock Mutex-wrapped uses of the lib.)
-	c.HttpClient.Timeout = time.Duration(ClientTimeout * time.Second)
 	go c.throttledQuery()
 	return c
 }
